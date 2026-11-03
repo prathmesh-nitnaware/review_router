@@ -3,6 +3,7 @@ import joblib
 import json
 import torch
 import numpy as np
+import warnings
 
 from app.services.preprocessing import clean_text
 
@@ -20,8 +21,12 @@ class SentimentAnalyzer:
         transformer_path = model_dir or os.path.join(base_dir, "models", "trained_model", "sentiment")
         baseline_path = os.path.join(base_dir, "models", "trained_model", "baseline")
         
-        # Try loading Hugging Face transformer first
-        if os.path.exists(os.path.join(transformer_path, "config.json")):
+        # 1. Try loading Hugging Face transformer if both config and weights exist
+        has_weights = any(
+            os.path.exists(os.path.join(transformer_path, f))
+            for f in ("model.safetensors", "pytorch_model.bin")
+        )
+        if os.path.exists(os.path.join(transformer_path, "config.json")) and has_weights:
             try:
                 from transformers import AutoTokenizer, AutoModelForSequenceClassification
                 self.tokenizer = AutoTokenizer.from_pretrained(transformer_path)
@@ -32,15 +37,19 @@ class SentimentAnalyzer:
                 return
             except Exception as e:
                 print(f"[SentimentAnalyzer] Failed to load Transformer: {e}. Falling back to baseline.")
+        elif os.path.exists(os.path.join(transformer_path, "config.json")):
+            print(f"[SentimentAnalyzer] Transformer config found but weights (.safetensors/.bin) not trained yet. (Run 'python train_transformer.py' to fine-tune). Using baseline model.")
                 
-        # Fallback to TF-IDF Baseline model
+        # 2. Fallback to TF-IDF Baseline model
         vec_file = os.path.join(baseline_path, "tfidf_vectorizer.joblib")
         model_file = os.path.join(baseline_path, "baseline_model.joblib")
         
         if os.path.exists(vec_file) and os.path.exists(model_file):
             try:
-                self.vectorizer = joblib.load(vec_file)
-                self.model = joblib.load(model_file)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+                    self.vectorizer = joblib.load(vec_file)
+                    self.model = joblib.load(model_file)
                 self.model_type = "baseline"
                 print(f"[SentimentAnalyzer] Loaded TF-IDF Baseline model from {baseline_path}")
             except Exception as e:

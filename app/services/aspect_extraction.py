@@ -75,26 +75,31 @@ class AspectExtractor:
         if self._zero_shot_pipeline is None:
             device = 0 if torch.cuda.is_available() else -1
             dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+            
+            # 1. First attempt: load directly from local Hugging Face cache (offline, zero SSL/network dependency)
             try:
-                # Try loading from local cache first to avoid hanging if network is slow
                 self._zero_shot_pipeline = pipeline(
                     "zero-shot-classification",
                     model=ZERO_SHOT_MODEL,
                     device=device,
-                    torch_dtype=dtype,
-                    model_kwargs={"local_files_only": True}
+                    dtype=dtype,
+                    local_files_only=True
                 )
+                print(f"[AspectExtractor] Loaded Zero-Shot classifier ({ZERO_SHOT_MODEL}) from local cache.")
             except Exception:
+                # 2. Second attempt: download from Hugging Face if not in local cache
                 try:
                     self._zero_shot_pipeline = pipeline(
                         "zero-shot-classification",
                         model=ZERO_SHOT_MODEL,
                         device=device,
-                        torch_dtype=dtype
+                        dtype=dtype
                     )
+                    print(f"[AspectExtractor] Downloaded Zero-Shot classifier ({ZERO_SHOT_MODEL}).")
                 except Exception as e:
-                    print(f"Zero-shot model {ZERO_SHOT_MODEL} not available: {e}")
+                    print(f"[AspectExtractor] Zero-shot model '{ZERO_SHOT_MODEL}' unavailable ({e}). Falling back to semantic seed mapping.")
                     self._zero_shot_pipeline = False
+                    
         return self._zero_shot_pipeline if self._zero_shot_pipeline else None
 
     def _map_entity_to_aspect(self, entity_text: str, clause: str) -> tuple[str, str]:
@@ -207,5 +212,3 @@ class AspectExtractor:
             })
 
         return detected_issues
-
-
