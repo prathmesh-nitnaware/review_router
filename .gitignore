@@ -48,3 +48,7 @@ tmp/
 Thumbs.db
 
 raw/
+
+.uv_cache/
+.uv_python/
+.uv_data/

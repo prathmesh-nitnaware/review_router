@@ -285,6 +285,24 @@ ecommerce-review-router/
 
 ## 🏃 Quick Start Guide
 
+### ⚡ One-Click Launch (All Services)
+Start both FastAPI Backend and Streamlit Dashboard simultaneously:
+\\powershell
+# Windows Batch (or double-click run_all.bat in Explorer)
+.\run_all.bat
+
+# PowerShell
+.\run_all.ps1
+
+# Cross-platform Python
+python run_all.py
+\- **Streamlit Web UI**: [http://localhost:8501](http://localhost:8501)
+- **Interactive Swagger API Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+---
+
+### Manual Launch (Individual Services)
+
 ### 1. Generate Dataset & Train Transformer Model
 ```powershell
 # Generate dataset
